@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hermes-antigravity"
+version = "1.0.0"
+description = "Google Antigravity (Cloud Code Assist) model provider plugin for Hermes Agent"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Abdulkadir Ateş", email = "33295633+kadiratesdev@users.noreply.github.com" }
+]
+dependencies = [
+    "httpx>=0.24.0,<1",
+]
+
+[project.scripts]
+hermes-antigravity-login = "login:main"
+
+[project.entry-points."hermes_agent.plugins"]
+antigravity = "__init__:register"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
