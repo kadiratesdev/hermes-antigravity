@@ -130,3 +130,75 @@ def test_auth_file_resolution(monkeypatch, tmp_path):
     monkeypatch.delenv("HERMES_HOME", raising=False)
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     assert get_auth_file() == tmp_path / ".hermes" / "auth" / "antigravity_oauth.json"
+
+
+def _load_login():
+    import sys
+
+    if str(PLUGIN_ROOT) not in sys.path:
+        sys.path.insert(0, str(PLUGIN_ROOT))
+    import login
+
+    return login
+
+
+def test_env_marker_created_in_profile_home(monkeypatch, tmp_path):
+    """The marker lands in the .env next to auth/, i.e. the active profile's home."""
+    login = _load_login()
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+
+    env_file, changed = login.ensure_env_marker()
+
+    assert env_file == tmp_path / ".env"
+    assert changed is True
+    assert env_file.read_text(encoding="utf-8") == "ANTIGRAVITY_OAUTH=oauth-file\n"
+
+
+def test_env_marker_preserves_existing_content_and_is_idempotent(monkeypatch, tmp_path):
+    login = _load_login()
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    env_file = tmp_path / ".env"
+    original = b"FOO=bar\r\nOTHER_KEY=secret"  # CRLF, no trailing newline
+    env_file.write_bytes(original)
+
+    _, changed = login.ensure_env_marker()
+    assert changed is True
+    data = env_file.read_bytes()
+    assert data.startswith(original)  # untouched prefix
+    assert data == original + b"\r\nANTIGRAVITY_OAUTH=oauth-file\r\n"
+
+    _, changed_again = login.ensure_env_marker()
+    assert changed_again is False
+    assert env_file.read_bytes() == data
+
+
+def test_env_marker_respects_user_value_and_fixes_empty(monkeypatch, tmp_path):
+    login = _load_login()
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    env_file = tmp_path / ".env"
+
+    env_file.write_text("ANTIGRAVITY_OAUTH=custom\n", encoding="utf-8")
+    assert login.ensure_env_marker()[1] is False
+    assert env_file.read_text(encoding="utf-8") == "ANTIGRAVITY_OAUTH=custom\n"
+
+    env_file.write_text("A=1\nANTIGRAVITY_OAUTH=\nB=2\n", encoding="utf-8")
+    assert login.ensure_env_marker()[1] is True
+    lines = env_file.read_text(encoding="utf-8").splitlines()
+    assert lines.count("ANTIGRAVITY_OAUTH=oauth-file") == 1
+    assert "ANTIGRAVITY_OAUTH=" not in lines
+    assert "A=1" in lines and "B=2" in lines
+
+
+def test_setup_env_requires_login(monkeypatch, tmp_path, capsys):
+    login = _load_login()
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setattr("sys.argv", ["login.py", "--setup-env"])
+
+    assert login.main() == 1
+    assert not (tmp_path / ".env").exists()
+
+    auth = tmp_path / "auth" / "antigravity_oauth.json"
+    auth.parent.mkdir(parents=True)
+    auth.write_text("{}", encoding="utf-8")
+    assert login.main() == 0
+    assert (tmp_path / ".env").read_text(encoding="utf-8") == "ANTIGRAVITY_OAUTH=oauth-file\n"

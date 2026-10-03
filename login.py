@@ -7,6 +7,10 @@ Runs the same PKCE flow the Antigravity IDE uses and writes the credential to
 Usage:
     python3 login.py            # opens a browser, captures the callback
     python3 login.py --manual   # prints the URL, you paste the redirect back
+    python3 login.py --setup-env  # already logged in, but Hermes shows no Antigravity models
+
+After a successful login this also registers ``ANTIGRAVITY_OAUTH=oauth-file`` in the Hermes
+``.env`` (a marker, not a secret) so Hermes treats the provider as configured.
 """
 
 from __future__ import annotations
@@ -62,6 +66,60 @@ def get_auth_file() -> Path:
 
 AUTH_FILE = get_auth_file()
 
+# Hermes only lists a provider's models (picker, Desktop, `hermes model`) when it finds a
+# credential for it, and for an api_key-type profile that means one of its ``env_vars`` is set.
+# The real token lives in antigravity_oauth.json, so we register this marker next to it.
+ENV_MARKER_KEY = "ANTIGRAVITY_OAUTH"
+ENV_MARKER_VALUE = "oauth-file"
+
+
+def get_env_file() -> Path:
+    """The ``.env`` of the same Hermes home that holds the OAuth file (profile-aware)."""
+    return get_auth_file().parent.parent / ".env"
+
+
+def ensure_env_marker() -> tuple[Path, bool]:
+    """Make Hermes see the provider as configured. Returns ``(env_file, changed)``.
+
+    Idempotent, keeps every other line untouched, and never overwrites a value the user
+    already set for the key.
+    """
+    env_file = get_env_file()
+    raw = env_file.read_bytes().decode("utf-8") if env_file.exists() else ""
+    lines = raw.splitlines()
+    for line in lines:
+        key, sep, value = line.strip().partition("=")
+        if sep and key.strip() == ENV_MARKER_KEY and value.strip().strip("\"'"):
+            return env_file, False
+    env_file.parent.mkdir(parents=True, exist_ok=True)
+    if any(ln.strip().partition("=")[0].strip() == ENV_MARKER_KEY for ln in lines):
+        # An empty `KEY=` is present: replace it instead of leaving a duplicate behind.
+        eol = "\r\n" if "\r\n" in raw else "\n"
+        kept = [ln for ln in lines if ln.strip().partition("=")[0].strip() != ENV_MARKER_KEY]
+        kept.append(f"{ENV_MARKER_KEY}={ENV_MARKER_VALUE}")
+        env_file.write_bytes((eol.join(kept) + eol).encode("utf-8"))
+    else:
+        # Append only: every existing line and its line endings stay byte-identical.
+        eol = "\r\n" if "\r\n" in raw else "\n"
+        prefix = "" if not raw or raw.endswith(("\n", "\r")) else eol
+        with env_file.open("ab") as fh:
+            fh.write(f"{prefix}{ENV_MARKER_KEY}={ENV_MARKER_VALUE}{eol}".encode("utf-8"))
+    return env_file, True
+
+
+def _report_env_marker() -> None:
+    try:
+        env_file, changed = ensure_env_marker()
+    except OSError as exc:
+        print(
+            f"Warning: could not update the Hermes .env ({exc}). "
+            f"Add {ENV_MARKER_KEY}={ENV_MARKER_VALUE} to it manually so models show up.",
+            file=sys.stderr,
+        )
+        return
+    print(f"{'Registered' if changed else 'Found'} {ENV_MARKER_KEY} in {env_file}")
+
+
 _result: dict = {}
 
 
@@ -82,6 +140,14 @@ class _Handler(http.server.BaseHTTPRequestHandler):
 
 
 def main() -> int:
+    if "--setup-env" in sys.argv:
+        # Repair for logins made before the marker existed: no browser, no token exchange.
+        if not get_auth_file().exists():
+            print("Not logged in yet; run login.py without --setup-env first.", file=sys.stderr)
+            return 1
+        _report_env_marker()
+        return 0
+
     manual = "--manual" in sys.argv
     verifier = secrets.token_hex(32)
     challenge = (
@@ -194,6 +260,7 @@ def main() -> int:
     )
     os.chmod(auth_file, 0o600)
     print(f"Saved credential for {email} (project {project}) -> {auth_file}")
+    _report_env_marker()
     return 0
 
 

@@ -61,6 +61,14 @@ hermes-antigravity-login
 
 This opens your default browser for Google sign-in and captures the OAuth callback locally. Credentials are saved securely to `~/.hermes/auth/antigravity_oauth.json` (mode `0600`).
 
+The login also adds `ANTIGRAVITY_OAUTH=oauth-file` to the `.env` of the same Hermes home (profile-aware). It is a marker, not a secret: Hermes only lists a provider's models once it finds a credential for it, and the real token lives in the OAuth file. Without it the Antigravity model list stays empty in the Desktop picker and `hermes model`.
+
+Already logged in, but the model list is empty? Register the marker without logging in again:
+
+```bash
+python3 ~/.hermes/plugins/antigravity-provider/login.py --setup-env
+```
+
 ### Headless / SSH Environments
 
 For remote or headless setups where a browser cannot be opened automatically:
