@@ -22,6 +22,13 @@ hermes-antigravity-login = "login:main"
 [project.entry-points."hermes_agent.plugins"]
 antigravity = "__init__:register"
 
+[tool.hatch.build.targets.wheel]
+include = [
+    "__init__.py",
+    "client.py",
+    "login.py",
+]
+
 [project.optional-dependencies]
 test = [
     "pytest>=8.0",
