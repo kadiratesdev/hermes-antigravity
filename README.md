@@ -11,7 +11,7 @@ Allows Hermes to use your Google Antigravity subscription to access Gemini and C
 
 ## Features
 
-- **Gemini & Claude Models**: Access Gemini (3.8 Flash, 2.5 Pro, 2.5 Flash) and Claude (Sonnet 3.7/4.5, Opus 4.5) through your Antigravity subscription.
+- **Gemini, Claude & GPT-OSS Models**: Access Claude Opus 5.5 and Sonnet 5.5, Gemini 3.x / 2.5 (Pro, Flash, Flash-Lite) and GPT-OSS 120B through your Antigravity subscription. The model list is discovered live from your account, so new models show up without a plugin update.
 - **Native Gemini Protocol**: Full support for tool calling, reasoning/thinking blocks, streaming SSE events, and usage accounting.
 - **Automated OAuth Refresh**: Performs PKCE authentication against Google OAuth and automatically refreshes expiring access tokens in the background.
 - **Profile-Aware**: Fully respects `HERMES_HOME` for multi-profile Hermes setups.
@@ -82,13 +82,19 @@ Open the printed URL in your local browser, sign in, and paste the redirect URL 
 
 ## Usage
 
-Once authenticated, select any Antigravity model:
+Once authenticated, switch to any Antigravity model from inside a session:
 
-```bash
-hermes model antigravity/gemini-3.8-flash-tiered
+```text
+/model gemini-3.8-flash-tiered --provider antigravity
 ```
 
-Or configure it in `~/.hermes/config.yaml`:
+Add `--global` to make it the default. For a one-off run from the shell:
+
+```bash
+hermes chat --provider antigravity -m claude-sonnet-5-5-high -q "hello"
+```
+
+Or set it as the default in `~/.hermes/config.yaml` (`hermes config set model.provider antigravity` and `hermes config set model.default <model-id>` do the same):
 
 ```yaml
 model:
@@ -96,19 +102,65 @@ model:
   provider: antigravity
 ```
 
-### Popular Models
+The Desktop app and `hermes model` also list every model below under **Google Antigravity**.
+
+### Available Models
+
+Live catalog of this plugin as of 2026-10-03: 27 IDs, 26 of them chat models. Use the ID exactly as written, with `--provider antigravity`. What your account can actually call depends on your Antigravity plan and quota.
+
+The suffixes (`-high`, `-medium`, `-low`, `-tiered`) are part of Google's model IDs and select a reasoning tier. The catalog does not document them any further.
+
+**Claude**
+
+| Model ID |
+|---|
+| `claude-opus-5-5-high` |
+| `claude-opus-5-5-medium` |
+| `claude-opus-5-5-low` |
+| `claude-sonnet-5-5-high` |
+| `claude-sonnet-5-5-medium` |
+| `claude-sonnet-5-5-low` |
+
+**Gemini 3.x**
+
+| Model ID |
+|---|
+| `gemini-3.8-flash-tiered` |
+| `gemini-3.7-flash-tiered` |
+| `gemini-3.6-flash-tiered` |
+| `gemini-3.6-flash-high` |
+| `gemini-3.6-flash-medium` |
+| `gemini-3.6-flash-low` |
+| `gemini-3.5-flash-low` |
+| `gemini-3.5-flash-extra-low` |
+| `gemini-3.5-flash-lite` |
+| `gemini-3.1-pro-high` |
+| `gemini-3.1-pro-low` |
+| `gemini-3.1-flash-lite` |
+| `gemini-3-flash` |
+| `gemini-3-flash-agent` |
+| `gemini-pro-agent` |
+
+**Gemini 2.5**
+
+| Model ID |
+|---|
+| `gemini-2.5-pro` |
+| `gemini-2.5-flash` |
+| `gemini-2.5-flash-thinking` |
+| `gemini-2.5-flash-lite` |
+
+**Other**
 
 | Model ID | Notes |
 |---|---|
-| `antigravity/gemini-3.8-flash-tiered` | Fast and capable default model with deep reasoning |
-| `antigravity/gemini-2.5-pro` | Flagship Gemini reasoning model |
-| `antigravity/gemini-2.5-flash` | Ultra-fast lightweight model |
-| `antigravity/claude-sonnet-4-5-20250929` | Claude 3.5/4.5 Sonnet via Cloud Code Assist |
-| `antigravity/claude-opus-4-5-20251101` | Claude 3.5/4.5 Opus via Cloud Code Assist |
+| `gpt-oss-120b-medium` | GPT-OSS 120B |
+| `gemini-3.1-flash-image` | Image model. It is in the gateway catalog but is not a chat model, so Hermes hides it from the picker |
 
-To fetch live models available on your account:
+Models come and go on Google's side. To refresh the list in the Desktop picker and `hermes model`:
+
 ```bash
-hermes models antigravity
+hermes model --refresh
 ```
 
 ---

@@ -12,14 +12,17 @@ python3 ~/.hermes/plugins/antigravity-provider/login.py
 The login also registers a small `ANTIGRAVITY_OAUTH` marker in your Hermes `.env` so the model list shows up. Already logged in but the list is empty? Run `python3 ~/.hermes/plugins/antigravity-provider/login.py --setup-env`.
 
 ### 2. Select a Model
-Once authenticated, select any supported Antigravity model:
-```bash
-hermes model antigravity/gemini-3.8-flash-tiered
+Once authenticated, switch to any supported Antigravity model inside a session:
+```text
+/model gemini-3.8-flash-tiered --provider antigravity
 ```
+(add `--global` to make it the default; the Desktop picker and `hermes model` list them too)
 
 Popular models:
-- `antigravity/gemini-3.8-flash-tiered`
-- `antigravity/gemini-2.5-pro`
-- `antigravity/gemini-2.5-flash`
-- `antigravity/claude-sonnet-4-5-20250929`
-- `antigravity/claude-opus-4-5-20251101`
+- `gemini-3.8-flash-tiered`
+- `gemini-3.1-pro-high`
+- `gemini-2.5-pro`
+- `claude-sonnet-5-5-high`
+- `claude-opus-5-5-high`
+
+See the README for the full model list.
