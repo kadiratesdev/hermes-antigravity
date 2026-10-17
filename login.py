@@ -2,7 +2,8 @@
 """Antigravity OAuth login for Hermes.
 
 Runs the same PKCE flow the Antigravity IDE uses and writes the credential to
-~/.hermes/auth/antigravity_oauth.json, which the antigravity provider reads.
+``$HERMES_HOME/auth/antigravity_oauth.json`` (``%LOCALAPPDATA%\\hermes`` on
+native Windows, ``~/.hermes`` on POSIX), which the antigravity provider reads.
 
 Usage:
     python3 login.py            # opens a browser, captures the callback
@@ -27,6 +28,11 @@ import urllib.parse
 import urllib.request
 import webbrowser
 from pathlib import Path
+
+try:
+    from .hermes_paths import get_auth_file, get_hermes_home
+except ImportError:  # `python login.py` as a plain script
+    from hermes_paths import get_auth_file, get_hermes_home
 
 # Public Antigravity CLI desktop OAuth client. Like Google's gemini-cli
 # credentials, this is a desktop OAuth client and its credential is non-confidential
@@ -56,14 +62,6 @@ SCOPES = [
     "https://www.googleapis.com/auth/experimentsandconfigs",
 ]
 
-
-def get_auth_file() -> Path:
-    hermes_home = os.environ.get("HERMES_HOME")
-    if hermes_home:
-        return Path(hermes_home) / "auth" / "antigravity_oauth.json"
-    return Path.home() / ".hermes" / "auth" / "antigravity_oauth.json"
-
-
 AUTH_FILE = get_auth_file()
 
 # Hermes only lists a provider's models (picker, Desktop, `hermes model`) when it finds a
@@ -75,7 +73,7 @@ ENV_MARKER_VALUE = "oauth-file"
 
 def get_env_file() -> Path:
     """The ``.env`` of the same Hermes home that holds the OAuth file (profile-aware)."""
-    return get_auth_file().parent.parent / ".env"
+    return get_hermes_home() / ".env"
 
 
 def ensure_env_marker() -> tuple[Path, bool]:

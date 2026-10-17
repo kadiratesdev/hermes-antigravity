@@ -11,10 +11,10 @@ Allows Hermes to use your Google Antigravity subscription to access Gemini and C
 
 ## Features
 
-- **Gemini, Claude & GPT-OSS Models**: Access Claude Opus 5.5 and Sonnet 5.5, Gemini 3.x / 2.5 (Pro, Flash, Flash-Lite) and GPT-OSS 120B through your Antigravity subscription. The model list is discovered live from your account, so new models show up without a plugin update.
+- **Gemini, Claude & GPT-OSS Models**: Access Gemini 4 Argon, Gemini 3.x Flash/Pro, Claude Opus/Sonnet 5.5 (and 4.6 on Free/Plus), and GPT-OSS 120B through your Antigravity subscription. The model list is discovered live from your account, so new models show up without a plugin update.
 - **Native Gemini Protocol**: Full support for tool calling, reasoning/thinking blocks, streaming SSE events, and usage accounting.
 - **Automated OAuth Refresh**: Performs PKCE authentication against Google OAuth and automatically refreshes expiring access tokens in the background.
-- **Profile-Aware**: Fully respects `HERMES_HOME` for multi-profile Hermes setups.
+- **Profile-Aware**: Fully respects `HERMES_HOME` for multi-profile Hermes setups. On native Windows the default home is `%LOCALAPPDATA%\hermes` (not `~/.hermes`).
 - **Safe & Clean**: Passes `hermes plugins validate` and the Hermes static security scanner with zero warnings.
 
 ---
@@ -34,7 +34,11 @@ hermes plugins install kadiratesdev/hermes-antigravity --enable
 Clone into your user plugins directory:
 
 ```bash
+# POSIX / WSL
 git clone https://github.com/kadiratesdev/hermes-antigravity.git ~/.hermes/plugins/antigravity-provider
+
+# Native Windows (PowerShell)
+git clone https://github.com/kadiratesdev/hermes-antigravity.git "$env:LOCALAPPDATA\hermes\plugins\antigravity-provider"
 ```
 
 ### Method 3: Pip / Editable Install
@@ -52,14 +56,17 @@ pip install git+https://github.com/kadiratesdev/hermes-antigravity.git
 Run the PKCE OAuth login script to authenticate your Google account:
 
 ```bash
-# If installed as a plugin:
+# If installed as a plugin (POSIX / WSL):
 python3 ~/.hermes/plugins/antigravity-provider/login.py
+
+# Native Windows:
+python "$env:LOCALAPPDATA\hermes\plugins\antigravity-provider\login.py"
 
 # Or if pip-installed:
 hermes-antigravity-login
 ```
 
-This opens your default browser for Google sign-in and captures the OAuth callback locally. Credentials are saved securely to `~/.hermes/auth/antigravity_oauth.json` (mode `0600`).
+This opens your default browser for Google sign-in and captures the OAuth callback locally. Credentials are saved securely to `$HERMES_HOME/auth/antigravity_oauth.json` (mode `0600`) — `%LOCALAPPDATA%\hermes\auth\` on native Windows, `~/.hermes/auth/` on POSIX.
 
 The login also adds `ANTIGRAVITY_OAUTH=oauth-file` to the `.env` of the same Hermes home (profile-aware). It is a marker, not a secret: Hermes only lists a provider's models once it finds a credential for it, and the real token lives in the OAuth file. Without it the Antigravity model list stays empty in the Desktop picker and `hermes model`.
 
@@ -91,10 +98,10 @@ Once authenticated, switch to any Antigravity model from inside a session:
 Add `--global` to make it the default. For a one-off run from the shell:
 
 ```bash
-hermes chat --provider antigravity -m claude-sonnet-5-5-high -q "hello"
+hermes chat --provider antigravity -m claude-sonnet-4-6 -q "hello"
 ```
 
-Or set it as the default in `~/.hermes/config.yaml` (`hermes config set model.provider antigravity` and `hermes config set model.default <model-id>` do the same):
+Or set it as the default in `$HERMES_HOME/config.yaml` (`hermes config set model.provider antigravity` and `hermes config set model.default <model-id>` do the same):
 
 ```yaml
 model:
@@ -106,11 +113,11 @@ The Desktop app and `hermes model` also list every model below under **Google An
 
 ### Available Models
 
-Live catalog of this plugin as of 2026-10-03: 27 IDs, 26 of them chat models. Use the ID exactly as written, with `--provider antigravity`. What your account can actually call depends on your Antigravity plan and quota.
+Reference catalog as of 2026-10-17. **Live discovery is authoritative** — `hermes model --refresh` shows exactly what your account advertises. Availability depends on plan (Free / Google AI Plus / Pro / Ultra / Enterprise) and quota. Claude 4.6 and GPT-OSS are scheduled for removal from Antigravity on 2026-11-02.
 
-The suffixes (`-high`, `-medium`, `-low`, `-tiered`) are part of Google's model IDs and select a reasoning tier. The catalog does not document them any further.
+The suffixes (`-high`, `-medium`, `-low`, `-tiered`, `-thinking`) are part of Google's wire IDs. Send them exactly as discovered; do not strip Claude 5.5 effort suffixes.
 
-**Claude**
+**Claude 5.5** (Google AI Pro / Ultra)
 
 | Model ID |
 |---|
@@ -121,43 +128,58 @@ The suffixes (`-high`, `-medium`, `-low`, `-tiered`) are part of Google's model 
 | `claude-sonnet-5-5-medium` |
 | `claude-sonnet-5-5-low` |
 
+**Claude 4.6** (Free / Plus — retiring 2026-11-02)
+
+| Model ID |
+|---|
+| `claude-opus-4-6-thinking` |
+| `claude-sonnet-4-6` |
+
+**Gemini 4**
+
+| Model ID |
+|---|
+| `gemini-4-argon` |
+| `gemini-4-argon-high` |
+| `gemini-4-argon-medium` |
+| `gemini-4-argon-low` |
+
 **Gemini 3.x**
 
 | Model ID |
 |---|
 | `gemini-3.8-flash-tiered` |
+| `gemini-3.8-flash-high` |
+| `gemini-3.8-flash-medium` |
+| `gemini-3.8-flash-low` |
 | `gemini-3.7-flash-tiered` |
+| `gemini-3.7-flash-high` |
+| `gemini-3.7-flash-medium` |
+| `gemini-3.7-flash-low` |
 | `gemini-3.6-flash-tiered` |
 | `gemini-3.6-flash-high` |
 | `gemini-3.6-flash-medium` |
 | `gemini-3.6-flash-low` |
+| `gemini-3.5-flash-high` |
+| `gemini-3.5-flash-medium` |
 | `gemini-3.5-flash-low` |
 | `gemini-3.5-flash-extra-low` |
-| `gemini-3.5-flash-lite` |
+| `gemini-3-flash-agent` |
 | `gemini-3.1-pro-high` |
 | `gemini-3.1-pro-low` |
-| `gemini-3.1-flash-lite` |
-| `gemini-3-flash` |
-| `gemini-3-flash-agent` |
 | `gemini-pro-agent` |
-
-**Gemini 2.5**
-
-| Model ID |
-|---|
-| `gemini-2.5-pro` |
-| `gemini-2.5-flash` |
-| `gemini-2.5-flash-thinking` |
-| `gemini-2.5-flash-lite` |
+| `gemini-3.1-flash-lite` |
 
 **Other**
 
 | Model ID | Notes |
 |---|---|
-| `gpt-oss-120b-medium` | GPT-OSS 120B |
-| `gemini-3.1-flash-image` | Image model. It is in the gateway catalog but is not a chat model, so Hermes hides it from the picker |
+| `gpt-oss-120b-medium` | GPT-OSS 120B (retiring 2026-11-02) |
+| `gemini-3.1-flash-image` | Image model. In the gateway catalog but not a chat model; Hermes hides it from the picker |
 
-Models come and go on Google's side. To refresh the list in the Desktop picker and `hermes model`:
+Older Gemini 2.5 IDs (`gemini-2.5-flash`, `gemini-2.5-flash-thinking`, `gemini-2.5-flash-lite`, …) may still appear on some accounts until Google retires them from the live catalog.
+
+To refresh the list in the Desktop picker and `hermes model`:
 
 ```bash
 hermes model --refresh

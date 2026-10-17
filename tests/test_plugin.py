@@ -20,7 +20,7 @@ def test_manifest_structure():
     manifest = yaml.safe_load(manifest_file.read_text(encoding="utf-8"))
     assert manifest.get("name") == "antigravity-provider"
     assert manifest.get("kind") == "model-provider"
-    assert manifest.get("version") == "1.0.0"
+    assert manifest.get("version") == "1.1.1"
     assert "antigravity" in manifest.get("description", "").lower()
 
 
@@ -70,8 +70,8 @@ def test_client_enveloping_and_unwrapping():
 
     # Test envelope
     req = {"contents": [{"parts": [{"text": "hello"}]}]}
-    envelope = AntigravityClient._envelope("gemini-3-flash", req)
-    assert envelope["model"] == "gemini-3-flash"
+    envelope = AntigravityClient._envelope("gemini-3.8-flash-tiered", req)
+    assert envelope["model"] == "gemini-3.8-flash-tiered"
     assert envelope["request"] == req
     assert envelope["userAgent"] == "antigravity"
     assert "requestId" in envelope
@@ -101,7 +101,7 @@ def test_request_sanitization():
             "maxOutputTokens": 100000,
         }
     }
-    sanitized = _sanitize_request(req, model="claude-sonnet-4-5-20250929")
+    sanitized = _sanitize_request(req, model="claude-sonnet-4-6")
     assert sanitized["generationConfig"]["maxOutputTokens"] == 64000
 
     # Test token clamping for gemini
@@ -115,21 +115,28 @@ def test_request_sanitization():
 
 
 def test_auth_file_resolution(monkeypatch, tmp_path):
-    """Verify get_auth_file respects HERMES_HOME."""
+    """Verify get_auth_file respects HERMES_HOME and platform defaults."""
     import sys
 
     if str(PLUGIN_ROOT) not in sys.path:
         sys.path.insert(0, str(PLUGIN_ROOT))
 
-    from client import get_auth_file
+    import hermes_paths
 
     custom_home = tmp_path / "custom_hermes"
     monkeypatch.setenv("HERMES_HOME", str(custom_home))
-    assert get_auth_file() == custom_home / "auth" / "antigravity_oauth.json"
+    assert hermes_paths.get_auth_file() == custom_home / "auth" / "antigravity_oauth.json"
 
     monkeypatch.delenv("HERMES_HOME", raising=False)
+    local = tmp_path / "LocalAppData"
+    monkeypatch.setenv("LOCALAPPDATA", str(local))
+    monkeypatch.setattr(hermes_paths.sys, "platform", "win32")
+    assert hermes_paths.get_auth_file() == local / "hermes" / "auth" / "antigravity_oauth.json"
+
+    monkeypatch.delenv("LOCALAPPDATA", raising=False)
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    assert get_auth_file() == tmp_path / ".hermes" / "auth" / "antigravity_oauth.json"
+    monkeypatch.setattr(hermes_paths.sys, "platform", "linux")
+    assert hermes_paths.get_auth_file() == tmp_path / ".hermes" / "auth" / "antigravity_oauth.json"
 
 
 def _load_login():

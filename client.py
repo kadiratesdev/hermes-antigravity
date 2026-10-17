@@ -33,6 +33,11 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, Iterator, Optional
 
+try:
+    from .hermes_paths import get_auth_file
+except ImportError:  # script / editable checkout without package context
+    from hermes_paths import get_auth_file
+
 from agent.bounded_response import read_streaming_error_body
 from agent.gemini_native_adapter import (
     GeminiNativeClient,
@@ -47,13 +52,6 @@ from agent.gemini_native_adapter import (
 import httpx
 
 # ── Constants ────────────────────────────────────────────────────────────
-def get_auth_file() -> Path:
-    hermes_home = os.environ.get("HERMES_HOME")
-    if hermes_home:
-        return Path(hermes_home) / "auth" / "antigravity_oauth.json"
-    return Path.home() / ".hermes" / "auth" / "antigravity_oauth.json"
-
-
 AUTH_FILE = get_auth_file()
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 
@@ -206,7 +204,7 @@ class AntigravityClient(GeminiNativeClient):
     def _create_chat_completion(
         self,
         *,
-        model: str = "gemini-3-flash",
+        model: str = "gemini-3.8-flash-tiered",
         messages: Optional[list] = None,
         stream: bool = False,
         tools: Any = None,
